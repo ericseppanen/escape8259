@@ -18,14 +18,12 @@
 //!
 //! [RFC8259]: https://tools.ietf.org/html/rfc8259
 
-
 #![warn(missing_docs)]
 
 use std::char::decode_utf16;
 
+/// An error occurred while unescaping.
 #[derive(Debug, Clone, Eq, PartialEq)]
-
-/// An error occurred while
 pub struct UnescapeError {}
 
 type UnescapeResult<T> = Result<T, UnescapeError>;
@@ -125,7 +123,7 @@ fn is_safe_char(c: char) -> bool {
 /// The only allowed single-character escapes are:
 /// `\" \\ \/ /b /f /n /r /t`
 ///
-/// Any other characte may be escaped in UTF-16 form:
+/// Any other character may be escaped in UTF-16 form:
 /// `\uXXXX` or `\uXXXX\uXXXX`
 ///
 /// Characters in the ranges `0x20-21`, `0x23-5B`, `0x5D-10FFFF`
@@ -208,7 +206,7 @@ fn force_escape(c: char, out: &mut String) {
 /// Only characters that require escaping will be escaped:
 /// quotation mark `?`,
 /// reverse solidus `\` (backslash),
-/// and the control characters (0x00-1F).
+/// and the control characters (`0x00-1F`).
 pub fn escape(s: &str) -> String {
     let mut out = String::new();
     for c in s.chars() {
