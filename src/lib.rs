@@ -221,21 +221,20 @@ pub fn escape(s: &str) -> String {
 mod tests {
     use super::*;
 
-    macro_rules! assert_round_trip {
-        ($s : expr) => {
-            assert_eq!($s, unescape(&escape($s)).unwrap());
-        };
+    #[rustversion::attr(since(1.46), track_caller)]
+    fn assert_round_trip(s: &str) {
+        assert_eq!(s, unescape(&escape(s)).unwrap());
     }
 
     #[test]
     fn test_round_trip() {
-        assert_round_trip!("abc");
-        assert_round_trip!("\n\r\t\x08\x0C\x00");
-        assert_round_trip!(r#"\"#);
-        assert_round_trip!(r#"""#);
-        assert_round_trip!("Σ𝄞");
-        assert_round_trip!(r#"\𝄞"#);
-        assert_round_trip!(r#"(╯°□°）╯︵ ┻━┻"#);
+        assert_round_trip("abc");
+        assert_round_trip("\n\r\t\x08\x0C\x00");
+        assert_round_trip(r#"\"#);
+        assert_round_trip(r#"""#);
+        assert_round_trip("Σ𝄞");
+        assert_round_trip(r#"\𝄞"#);
+        assert_round_trip(r#"(╯°□°）╯︵ ┻━┻"#);
     }
 
     #[test]
