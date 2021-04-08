@@ -56,7 +56,7 @@ impl UnescapeState {
     // Collect a new UTF16 word.  This can either be one whole character,
     // or part of a larger character.
     fn push_u16(&mut self, x: u16) -> UnescapeResult<()> {
-        let surrogate = x >= 0xD800 && x <= 0xDFFF;
+        let surrogate = (0xD800..=0xDFFF).contains(&x);
         match (self.stash, surrogate) {
             (0, false) => {
                 // The std library only provides utf16 decode of an iterator,
@@ -156,12 +156,10 @@ pub fn unescape(s: &str) -> UnescapeResult<String> {
                     }
                 }
             }
+        } else if is_safe_char(c) {
+            state.push_char(c)?;
         } else {
-            if is_safe_char(c) {
-                state.push_char(c)?;
-            } else {
-                return Err(UnescapeError {});
-            }
+            return Err(UnescapeError {});
         }
     }
 
