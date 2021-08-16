@@ -127,7 +127,7 @@ fn is_safe_char(c: char) -> bool {
 /// `\uXXXX` or `\uXXXX\uXXXX`
 ///
 /// Characters in the ranges `0x20-21`, `0x23-5B`, `0x5D-10FFFF`
-/// may appear un-escaped.
+/// may appear un-escaped in the input.
 pub fn unescape(s: &str) -> UnescapeResult<String> {
     let mut state = UnescapeState::new();
     let mut ins = s.chars();
