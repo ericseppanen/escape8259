@@ -19,6 +19,8 @@
 //! [RFC8259]: https://tools.ietf.org/html/rfc8259
 
 #![warn(missing_docs)]
+#![forbid(unsafe_code)]
+#![warn(clippy::cast_possible_truncation)]
 
 use std::char::decode_utf16;
 
