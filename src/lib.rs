@@ -130,7 +130,15 @@ fn is_safe_char(c: char) -> bool {
 ///
 /// Characters in the ranges `0x20-21`, `0x23-5B`, `0x5D-10FFFF`
 /// may appear un-escaped in the input.
-pub fn unescape(s: &str) -> UnescapeResult<String> {
+#[inline]
+pub fn unescape<S>(s: S) -> UnescapeResult<String>
+where
+    S: AsRef<str>,
+{
+    unescape_inner(s.as_ref())
+}
+
+fn unescape_inner(s: &str) -> UnescapeResult<String> {
     let mut state = UnescapeState::new();
     let mut ins = s.chars();
 
@@ -207,7 +215,15 @@ fn force_escape(c: char, out: &mut String) {
 /// quotation mark `?`,
 /// reverse solidus `\` (backslash),
 /// and the control characters (`0x00-1F`).
-pub fn escape(s: &str) -> String {
+#[inline]
+pub fn escape<S>(s: S) -> String
+where
+    S: AsRef<str>,
+{
+    escape_inner(s.as_ref())
+}
+
+fn escape_inner(s: &str) -> String {
     let mut out = String::new();
     for c in s.chars() {
         if is_safe_char(c) {
@@ -261,5 +277,16 @@ mod tests {
         assert_eq!(unescape(r#"\uD834"#), Err(UnescapeError {}));
         assert_eq!(unescape(r#"\uDD1E"#), Err(UnescapeError {}));
         assert_eq!(unescape("\t"), Err(UnescapeError {}));
+    }
+
+    #[test]
+    fn test_generic_asref() {
+        assert_eq!(escape("\n"), r#"\n"#);
+        assert_eq!(escape(String::from("\n")), r#"\n"#);
+        assert_eq!(escape(&String::from("\n")), r#"\n"#);
+
+        assert_eq!(unescape("abc"), Ok("abc".into()));
+        assert_eq!(unescape(String::from("abc")), Ok("abc".into()));
+        assert_eq!(unescape(&String::from("abc")), Ok("abc".into()));
     }
 }
