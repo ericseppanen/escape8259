@@ -14,5 +14,5 @@ edition = "2018"
 rustversion = "1.0"
 
 [package.metadata.release]
-no-dev-version = true
+dev-version = false
 pre-release-commit-message = "release {{version}}"
