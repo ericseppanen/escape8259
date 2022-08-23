@@ -23,6 +23,7 @@
 #![warn(clippy::cast_possible_truncation)]
 
 use std::char::decode_utf16;
+use std::fmt::Write;
 
 /// An error occurred while unescaping.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -204,7 +205,7 @@ fn force_escape(c: char, out: &mut String) {
             if c >= 0x20 {
                 panic!("force_escape unnecessary encoding requested");
             }
-            out.push_str(&format!("\\u{:04x}", c));
+            write!(out, "\\u{:04x}", c).unwrap();
         }
     }
 }
