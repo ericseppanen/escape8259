@@ -30,11 +30,19 @@
 #![warn(clippy::cast_possible_truncation)]
 
 use std::char::decode_utf16;
-use std::fmt::Write;
+use std::fmt::{Display, Write};
 
 /// An error occurred while unescaping.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct UnescapeError {}
+pub struct UnescapeError;
+
+impl Display for UnescapeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("failed rfc8259 unescape")
+    }
+}
+
+impl std::error::Error for UnescapeError {}
 
 type UnescapeResult<T> = Result<T, UnescapeError>;
 
@@ -296,5 +304,12 @@ mod tests {
         assert_eq!(unescape("abc"), Ok("abc".into()));
         assert_eq!(unescape(String::from("abc")), Ok("abc".into()));
         assert_eq!(unescape(&String::from("abc")), Ok("abc".into()));
+    }
+
+    #[test]
+    fn test_error_impl() {
+        // This won't compile if UnescapeError doesn't impl Display + Error.
+        let e = UnescapeError;
+        let _x: Box<dyn std::error::Error> = e.into();
     }
 }
