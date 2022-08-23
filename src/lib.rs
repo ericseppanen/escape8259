@@ -9,6 +9,13 @@
 //! ```
 //! use escape8259::{escape, unescape};
 //!
+//! let s = "A null (\0) and a double-quote (\")";
+//! assert_eq!(escape(s), r#"A null (\u0000) and a double-quote (\")"#);
+//!
+//! let crab = r#"This is a crab: \ud83e\udd80"#;
+//! assert_eq!(unescape(crab).unwrap(), "This is a crab: 🦀");
+//!
+//! // We accept encodings that weren't really necessary.
 //! assert_eq!(unescape(r#"\u0041\n"#).unwrap(), "A\n");
 //!
 //! let multiline = r#"hello
