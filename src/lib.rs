@@ -33,8 +33,9 @@ use std::char::decode_utf16;
 use std::fmt::{Display, Write};
 
 /// An error occurred while unescaping.
+#[allow(clippy::empty_structs_with_brackets)] // FIXME: correct this if releasing a new major version.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct UnescapeError;
+pub struct UnescapeError {}
 
 impl Display for UnescapeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -309,7 +310,7 @@ mod tests {
     #[test]
     fn test_error_impl() {
         // This won't compile if UnescapeError doesn't impl Display + Error.
-        let e = UnescapeError;
+        let e = UnescapeError {};
         let _x: Box<dyn std::error::Error> = e.into();
     }
 }
