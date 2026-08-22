@@ -6,6 +6,8 @@
 RFCs use the same string escaping mechanism, so it's useful to be able to
 access the string escaping functions by themselves.
 
+`escape8259` is compatible with Rust 1.38.0 and above.
+
 # Examples
 
 ```rust
