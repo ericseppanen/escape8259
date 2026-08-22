@@ -258,7 +258,7 @@ mod tests {
 
     #[rustversion::attr(since(1.46), track_caller)]
     fn assert_round_trip(s: &str) {
-        assert_eq!(s, unescape(&escape(s)).unwrap());
+        assert_eq!(s, unescape(escape(s)).unwrap());
     }
 
     #[test]
@@ -284,8 +284,8 @@ mod tests {
 
     #[test]
     fn test_unescape() {
-        assert_eq!(unescape(&r#"abc"#), Ok("abc".into()));
-        assert_eq!(unescape(&r#"ab\nc"#), Ok("ab\nc".into()));
+        assert_eq!(unescape(r#"abc"#), Ok("abc".into()));
+        assert_eq!(unescape(r#"ab\nc"#), Ok("ab\nc".into()));
         assert_eq!(unescape(r#"ab\zc"#), Err(UnescapeError {}));
         assert_eq!(unescape(r#" \"abc\" "#), Ok(" \"abc\" ".into()));
         assert_eq!(unescape(r#"𝄞"#), Ok("𝄞".into()));
@@ -300,11 +300,11 @@ mod tests {
     fn test_generic_asref() {
         assert_eq!(escape("\n"), r#"\n"#);
         assert_eq!(escape(String::from("\n")), r#"\n"#);
-        assert_eq!(escape(&String::from("\n")), r#"\n"#);
+        assert_eq!(escape(String::from("\n")), r#"\n"#);
 
         assert_eq!(unescape("abc"), Ok("abc".into()));
         assert_eq!(unescape(String::from("abc")), Ok("abc".into()));
-        assert_eq!(unescape(&String::from("abc")), Ok("abc".into()));
+        assert_eq!(unescape(String::from("abc")), Ok("abc".into()));
     }
 
     #[test]
