@@ -2,7 +2,7 @@
 //!
 //! [RFC8259] is a JSON encoding standard.  Many JSON encoders exist, but other
 //! RFCs use the same string escaping mechanism, so it's useful to be able to
-//! access the string escaping functions by themselves.
+//! access the string escaping functions without needing a full JSON implementation.
 //!
 //! # Examples
 //!
