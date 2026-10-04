@@ -9,7 +9,6 @@ license = "MIT"
 authors = ["Eric Seppanen <eds@reric.net>"]
 readme = "README.md"
 edition = "2018"
-exclude = ["Cranky.toml"]
 
 [dev-dependencies]
 rustversion = "1.0"
