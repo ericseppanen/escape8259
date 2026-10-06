@@ -29,6 +29,7 @@
 #![forbid(unsafe_code)]
 #![warn(clippy::cast_possible_truncation)]
 
+use std::borrow::Cow;
 use std::char::decode_utf16;
 use std::fmt::{Display, Write};
 
@@ -59,6 +60,13 @@ impl UnescapeState {
     fn new() -> UnescapeState {
         UnescapeState {
             out: String::new(),
+            stash: 0,
+        }
+    }
+
+    fn from_str(init: &str) -> UnescapeState {
+        UnescapeState {
+            out: init.to_owned(),
             stash: 0,
         }
     }
@@ -147,16 +155,81 @@ fn is_safe_char(c: char) -> bool {
 ///
 /// Characters in the ranges `0x20-21`, `0x23-5B`, `0x5D-10FFFF`
 /// may appear un-escaped in the input.
-#[inline]
+///
+/// This function may be faster than [`unescape`] if no un-escaping is needed,
+/// as it can return the input without performing any additional heap allocations.
+pub fn unescape_string(s: String) -> UnescapeResult<String> {
+    // Find the byte offset of the first backslash, which signals
+    // a place we need to modify the input.
+    let first_backslash = s.find(|c| !is_safe_char(c));
+    match first_backslash {
+        None => {
+            // No backslash present; return the input.
+            Ok(s)
+        }
+        Some(index) => {
+            let (safe, remaining) = s.split_at(index);
+            let state = UnescapeState::from_str(safe);
+            let output_string = unescape_inner(state, remaining)?;
+            Ok(output_string)
+        }
+    }
+}
+
+/// Un-escape a string, following RFC8259 rules.
+///
+/// The only allowed single-character escapes are:
+/// `\" \\ \/ /b /f /n /r /t`
+///
+/// Any other character may be escaped in UTF-16 form:
+/// `\uXXXX` or `\uXXXX\uXXXX`
+///
+/// Characters in the ranges `0x20-21`, `0x23-5B`, `0x5D-10FFFF`
+/// may appear un-escaped in the input.
+///
+/// This function may be faster than [`unescape`] if no un-escaping is needed,
+/// as it can return the input without performing any heap allocations.
+pub fn unescape_str<'a>(s: &'a str) -> UnescapeResult<Cow<'a, str>> {
+    // Find the byte offset of the first backslash, which signals
+    // a place we need to modify the input.
+    let first_backslash = s.find(|c| !is_safe_char(c));
+    match first_backslash {
+        None => {
+            // No backslash present; return the input.
+            Ok(Cow::Borrowed(s))
+        }
+        Some(index) => {
+            let (safe, remaining) = s.split_at(index);
+            let state = UnescapeState::from_str(safe);
+            let output_string = unescape_inner(state, remaining)?;
+            Ok(Cow::Owned(output_string))
+        }
+    }
+}
+
+/// Un-escape a string, following RFC8259 rules.
+///
+/// The only allowed single-character escapes are:
+/// `\" \\ \/ /b /f /n /r /t`
+///
+/// Any other character may be escaped in UTF-16 form:
+/// `\uXXXX` or `\uXXXX\uXXXX`
+///
+/// Characters in the ranges `0x20-21`, `0x23-5B`, `0x5D-10FFFF`
+/// may appear un-escaped in the input.
+///
+/// If performance is important, and it's likely that the input string
+/// will not require any un-escaping, perhaps consider using [`unescape_str`]
+/// or [`unescape_string`] instead.
 pub fn unescape<S>(s: S) -> UnescapeResult<String>
 where
     S: AsRef<str>,
 {
-    unescape_inner(s.as_ref())
+    let state = UnescapeState::new();
+    unescape_inner(state, s.as_ref())
 }
 
-fn unescape_inner(s: &str) -> UnescapeResult<String> {
-    let mut state = UnescapeState::new();
+fn unescape_inner(mut state: UnescapeState, s: &str) -> UnescapeResult<String> {
     let mut ins = s.chars();
 
     while let Some(c) = ins.next() {
@@ -226,13 +299,88 @@ fn force_escape(c: char, out: &mut String) {
     }
 }
 
+/// Escape a `String`, following RFC8259 rules.
+///
+/// Only characters that require escaping will be escaped:
+/// quotation mark `?`,
+/// reverse solidus `\` (backslash),
+/// and the control characters (`0x00-1F`).
+///
+/// This function may be faster than [`escape`] if no escaping is needed,
+/// as it can return the input without performing any additional heap allocations.
+pub fn escape_string(s: String) -> String {
+    // Scan the input string until we reach a character that needs escaping.
+    let first_escape_index = match s.find(|c| !is_safe_char(c)) {
+        Some(index) => index,
+        None => {
+            // No chars were found that need escaping. Return the input.
+            return s;
+        }
+    };
+
+    // Split the string at the first escaped character.
+    let (safe, remaining) = s.split_at(first_escape_index);
+    // Copy the safe characters into our output String.
+    // Allocate enough space for the input with two escaped chars (wild guess).
+    let mut out = String::with_capacity(s.len() + 10);
+    out.push_str(safe);
+
+    for c in remaining.chars() {
+        if is_safe_char(c) {
+            out.push(c);
+        } else {
+            force_escape(c, &mut out);
+        }
+    }
+    out
+}
+
+/// Escape a `&str`, following RFC8259 rules.
+///
+/// Only characters that require escaping will be escaped:
+/// quotation mark `?`,
+/// reverse solidus `\` (backslash),
+/// and the control characters (`0x00-1F`).
+///
+/// This function may be faster than [`escape`] if no escaping is needed,
+/// as it can return the input without performing any heap allocations.
+pub fn escape_str<'a>(s: &'a str) -> Cow<'a, str> {
+    // Scan the input string until we reach a character that needs escaping.
+    let first_escape_index = match s.find(|c| !is_safe_char(c)) {
+        Some(index) => index,
+        None => {
+            // No chars were found that need escaping. Return the input.
+            return Cow::Borrowed(s);
+        }
+    };
+
+    // Split the string at the first escaped character.
+    let (safe, remaining) = s.split_at(first_escape_index);
+    // Copy the safe characters into our output String.
+    // Allocate enough space for the input with two escaped chars (wild guess).
+    let mut out = String::with_capacity(s.len() + 10);
+    out.push_str(safe);
+
+    for c in remaining.chars() {
+        if is_safe_char(c) {
+            out.push(c);
+        } else {
+            force_escape(c, &mut out);
+        }
+    }
+    Cow::Owned(out)
+}
+
 /// Escape a string, following RFC8259 rules.
 ///
 /// Only characters that require escaping will be escaped:
 /// quotation mark `?`,
 /// reverse solidus `\` (backslash),
 /// and the control characters (`0x00-1F`).
-#[inline]
+///
+/// If performance is important, and it's likely that the input string
+/// will not require any escaping, perhaps consider using [`escape_str`]
+/// or [`escape_string`] instead.
 pub fn escape<S>(s: S) -> String
 where
     S: AsRef<str>,
@@ -258,7 +406,18 @@ mod tests {
 
     #[rustversion::attr(since(1.46), track_caller)]
     fn assert_round_trip(s: &str) {
-        assert_eq!(s, unescape(escape(s)).unwrap());
+        let escaped1 = escape(s);
+        let escaped2 = escape_str(s);
+        assert_eq!(escaped1, escaped2);
+        let escaped3 = escape_string(s.into());
+        assert_eq!(escaped1, escaped3);
+
+        let unescaped1 = unescape(&escaped1).unwrap();
+        let unescaped2 = unescape_str(&escaped2).unwrap();
+        let unescaped3 = unescape_string(escaped3).unwrap();
+        assert_eq!(s, unescaped1);
+        assert_eq!(s, unescaped2);
+        assert_eq!(s, unescaped3);
     }
 
     #[test]
